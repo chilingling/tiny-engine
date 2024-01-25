@@ -47,12 +47,12 @@ const menuState = reactive({
 const current = ref(null)
 const menuDom = ref(null)
 
-export const closeMenu = () => {
+const closeMenu = () => {
   menuState.show = false
   current.value = null
 }
 
-export const openMenu = (offset, event) => {
+const openMenu = (offset, event) => {
   const { x, y } = offset
   const { getScale } = useLayout()
   menuState.position = {
@@ -77,7 +77,7 @@ export default {
     SaveNewBlock,
     IconRight: iconRight()
   },
-  setup(props, { emit }) {
+  setup(props, { emit, expose }) {
     const menus = ref([
       { name: '修改属性', code: 'config' },
       {
@@ -219,6 +219,11 @@ export default {
         closeMenu()
       }
     }
+
+    expose({
+      openMenu,
+      closeMenu
+    })
 
     return {
       menuState,

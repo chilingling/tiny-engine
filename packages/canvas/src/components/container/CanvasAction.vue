@@ -74,7 +74,7 @@
   </div>
 </template>
 <script>
-import { watchPostEffect, ref, watch, computed } from 'vue'
+import { watchPostEffect, ref, watch, computed, defineAsyncComponent } from 'vue'
 import {
   IconDel,
   IconSetting,
@@ -97,7 +97,9 @@ import {
 } from './container'
 import { useResource } from '@opentiny/tiny-engine-controller'
 import { Popover } from '@opentiny/vue'
-import shortCutPopover from './shortCutPopover.vue'
+// import shortCutPopover from './shortCutPopover.vue'
+
+const ShortCutPopover = defineAsyncComponent(() => import('./shortCutPopover.vue'))
 
 // 工具操作条高度
 const OPTION_BAR_HEIGHT = 24
@@ -121,7 +123,7 @@ export default {
     IconArrowUp: IconArrowUp(),
     IconCopy: IconCopy(),
     IconEyeclose: IconEyeclose(),
-    shortCutPopover,
+    ShortCutPopover,
     TinyPopover: Popover
   },
   props: {

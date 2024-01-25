@@ -20,7 +20,7 @@
     ></iframe>
     <div v-else class="datainit-tip">应用数据初始化中...</div>
   </canvas-resize>
-  <canvas-menu @insert="insertComponent"></canvas-menu>
+  <canvas-menu ref="canvasMenuRef" @insert="insertComponent"></canvas-menu>
   <!-- 快捷选择物料面板 -->
   <div v-if="insertPosition" ref="insertPanel" class="insert-panel">
     <component :is="materialsPanel" :shortcut="insertPosition" @close="insertPosition = false"></component>
@@ -28,12 +28,11 @@
 </template>
 
 <script>
-import { onMounted, ref, computed, onUnmounted } from 'vue'
+import { onMounted, ref, computed, onUnmounted, defineAsyncComponent } from 'vue'
 import { iframeMonitoring } from '@opentiny/tiny-engine-common/js/monitor'
 import { useTranslate, useCanvas, useResource } from '@opentiny/tiny-engine-controller'
 import CanvasAction from './CanvasAction.vue'
 import CanvasResize from './CanvasResize.vue'
-import CanvasMenu, { closeMenu, openMenu } from './CanvasMenu.vue'
 import { NODE_UID, NODE_LOOP } from '../common'
 import { registerHostkeyEvent, removeHostkeyEvent } from './keyboard'
 import CanvasDivider from './CanvasDivider.vue'
@@ -58,6 +57,8 @@ import {
   getCurrent
 } from './container'
 
+const CanvasMenu = defineAsyncComponent(() => import('./CanvasMenu.vue'))
+
 export default {
   components: { CanvasAction, CanvasResize, CanvasMenu, CanvasDivider, CanvasResizeBorder },
   props: {
@@ -70,6 +71,7 @@ export default {
     const iframe = ref(null)
     const insertPanel = ref(null)
     const insertPosition = ref(false)
+    const canvasMenuRef = ref(null)
     const loading = computed(() => useCanvas().isLoading())
     let showSettingModle = ref(false)
     let target = ref(null)
@@ -77,7 +79,7 @@ export default {
     const setCurrentNode = async (event) => {
       const { clientX, clientY } = event
       const element = getElement(event.target)
-      closeMenu()
+      canvasMenuRef.value?.closeMenu?.()
       let node = getCurrent().schema
 
       if (element) {
@@ -100,7 +102,7 @@ export default {
 
         // 如果是点击右键则打开右键菜单
         if (event.button === 2) {
-          openMenu(getOffset(event.target), event)
+          canvasMenuRef.value?.openMenu?.(getOffset(event.target), event)
         }
       }
     }
@@ -216,7 +218,8 @@ export default {
       target,
       showSettingModle,
       insertPosition,
-      loading
+      loading,
+      canvasMenuRef
     }
   }
 }
