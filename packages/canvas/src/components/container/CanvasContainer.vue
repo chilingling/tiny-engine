@@ -48,15 +48,14 @@ import {
   lineState,
   removeNodeById,
   updateRect,
-  getElement,
   dragStart,
   getOffset,
   selectNode,
   initCanvas,
   clearLineState,
-  querySelectById,
   getCurrent
 } from './container'
+import { getInstanceByTarget, getInstanceRect } from './node'
 
 export default {
   components: { CanvasAction, CanvasResize, CanvasMenu, CanvasDivider, CanvasResizeBorder },
@@ -76,32 +75,33 @@ export default {
 
     const setCurrentNode = async (event) => {
       const { clientX, clientY } = event
-      const element = getElement(event.target)
+      const instance = getInstanceByTarget(event.target)
+
       closeMenu()
       let node = getCurrent().schema
 
-      if (element) {
-        const currentElement = querySelectById(getCurrent().schema?.id)
+      if (!instance) {
+        return
+      }
 
-        if (!currentElement?.contains(element) || event.button === 0) {
-          const loopId = element.getAttribute(NODE_LOOP)
-          if (loopId) {
-            node = await selectNode(element.getAttribute(NODE_UID), `loop-id=${loopId}`)
-          } else {
-            node = await selectNode(element.getAttribute(NODE_UID))
-          }
-        }
+      const loopId = instance[NODE_LOOP]
 
-        if (event.button === 0 && element !== element.ownerDocument.body) {
-          const { x, y } = element.getBoundingClientRect()
+      if (loopId) {
+        node = await selectNode(instance[NODE_UID], instance, `loop-id=${loopId}`)
+      } else {
+        node = await selectNode(instance[NODE_UID], instance)
+      }
 
-          dragStart(node, element, { offsetX: clientX - x, offsetY: clientY - y })
-        }
+      // 鼠标左键单击且选中的元素为非 body 元素
+      if (event.button === 0 && instance) {
+        const { x, y } = getInstanceRect(instance)
 
-        // 如果是点击右键则打开右键菜单
-        if (event.button === 2) {
-          openMenu(getOffset(event.target), event)
-        }
+        dragStart(node, instance, { offsetX: clientX - x, offsetY: clientY - y })
+      }
+
+      // 如果是点击右键则打开右键菜单
+      if (event.button === 2) {
+        openMenu(getOffset(event.target), event)
       }
     }
 

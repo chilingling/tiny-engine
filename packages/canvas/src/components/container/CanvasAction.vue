@@ -93,8 +93,9 @@ import {
   getRenderer,
   getSchema,
   dragStart,
-  getCurrentElement
+  getCurrentInstance
 } from './container'
+import { getInstanceRect } from './node'
 import { useLayout, useResource } from '@opentiny/tiny-engine-controller'
 import { Popover } from '@opentiny/vue'
 import shortCutPopover from './shortCutPopover.vue'
@@ -236,13 +237,15 @@ export default {
     }
 
     const onMousedown = (event, horizontal, vertical) => {
-      const element = getCurrentElement()
-      if (!element) {
+      const instance = getCurrentInstance()
+
+      if (!instance) {
         return
       }
-      const { x, y, height, width } = element.getBoundingClientRect()
 
-      dragStart(getCurrent().schema, element, {
+      const { x, y, height, width } = getInstanceRect(instance)
+
+      dragStart(getCurrent().schema, instance, {
         offsetX: event.clientX,
         offsetY: event.clientY,
         x,

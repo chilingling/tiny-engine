@@ -19,7 +19,7 @@ import {
   NODE_TAG,
   NODE_LOOP
 } from '../common'
-import { useCanvas, useLayout, useResource, useTranslate } from '@opentiny/tiny-engine-controller'
+import { useCanvas, useLayout, useResource, useTranslate, useNode } from '@opentiny/tiny-engine-controller'
 export const POSITION = Object.freeze({
   TOP: 'top',
   BOTTOM: 'bottom',
@@ -29,6 +29,7 @@ export const POSITION = Object.freeze({
   FORBID: 'forbid'
 })
 import { isVsCodeEnv } from '@opentiny/tiny-engine-common/js/environments'
+import { getInstanceRect, getInstanceByTarget } from './node'
 
 const initialDragState = {
   keydown: false,
@@ -157,7 +158,7 @@ const smoothScroll = {
 
 export const dragStart = (
   data,
-  element,
+  instance,
   { offsetX = 0, offsetY = 0, horizontal, vertical, width, height, x, y } = {}
 ) => {
   // 表示鼠标按下开始拖拽
@@ -168,7 +169,7 @@ export const dragStart = (
   dragState.timer = Date.now()
 
   // 如果element存在表示在iframe内部拖拽
-  dragState.element = element
+  dragState.element = instance
   dragState.offset = { offsetX, offsetY, horizontal, vertical, width, height, x, y }
   clearHover()
 }
@@ -194,39 +195,15 @@ export const dragEnd = () => {
 }
 
 export const getOffset = (element) => {
-  if (element.ownerDocument === document) {
+  if (element?.ownerDocument === document) {
     return { x: 0, y: 0 }
   }
   const { x, y, bottom, top } = canvasState.iframe.getBoundingClientRect()
   return { x, y, bottom, top }
 }
 
-export const getElement = (element) => {
-  // 如果当前元素是body
-  if (element === element.ownerDocument.body) {
-    return element
-  }
-
-  // 如果当前元素是画布的html，返回画布的body
-  if (element === element.ownerDocument.documentElement) {
-    return element.ownerDocument.body
-  }
-
-  if (!element || element.nodeType !== 1) {
-    return undefined
-  }
-
-  if (element.getAttribute(NODE_UID)) {
-    return element
-  } else if (element.parentElement) {
-    return getElement(element.parentElement)
-  }
-
-  return undefined
-}
-
-const getRect = (element) => {
-  if (element === getDocument().body) {
+const getRect = (instance) => {
+  if (!instance) {
     const { innerWidth: width, innerHeight: height } = getWindow()
     return {
       left: 0,
@@ -239,7 +216,7 @@ const getRect = (element) => {
       y: 0
     }
   }
-  return element.getBoundingClientRect()
+  return getInstanceRect(instance)
 }
 
 const inserAfter = ({ parent, node, data }) => {
@@ -312,41 +289,44 @@ export const querySelectById = (id) => {
 }
 
 export const getCurrentElement = () => querySelectById(getCurrent().schema?.id)
+export const getCurrentInstance = () => useNode().getInstanceById(getCurrent().schema?.id)
 
 // 滚动页面后，目标元素与页面边界至少保留的边距
 const SCROLL_MARGIN = 15
 
-export const scrollToNode = (element) => {
-  if (element) {
-    const container = getDocument().documentElement
-    const { clientWidth, clientHeight } = container
-    const { x, y, width, height } = element.getBoundingClientRect()
-    const option = {}
+export const scrollToNode = (instance) => {
+  if (!instance) {
+    return nextTick()
+  }
 
-    if (x < 0) {
-      option.left = container.scrollLeft + x - SCROLL_MARGIN
-    } else if (x > clientWidth) {
-      option.left = x + width - clientWidth + SCROLL_MARGIN
-    }
+  const container = getDocument().documentElement
+  const { clientWidth, clientHeight } = container
+  const { x, y, width, height } = getInstanceRect(instance)
 
-    if (y < 0) {
-      option.top = container.scrollTop + y - SCROLL_MARGIN
-    } else if (y > clientHeight) {
-      option.top = y + height - clientHeight + SCROLL_MARGIN
-    }
+  const option = {}
 
-    if (typeof option.left === 'number' || typeof option.top === 'number') {
-      container.scrollTo(option)
-    }
+  if (x < 0) {
+    option.left = container.scrollLeft + x - SCROLL_MARGIN
+  } else if (x > clientWidth) {
+    option.left = x + width - clientWidth + SCROLL_MARGIN
+  }
+
+  if (y < 0) {
+    option.top = container.scrollTop + y - SCROLL_MARGIN
+  } else if (y > clientHeight) {
+    option.top = y + height - clientHeight + SCROLL_MARGIN
+  }
+
+  if (typeof option.left === 'number' || typeof option.top === 'number') {
+    container.scrollTo(option)
   }
 
   return nextTick()
 }
-const setSelectRect = (element) => {
-  element = element || getDocument().body
+const setSelectRect = (instance) => {
+  const { left, height, top, width } = getRect(instance)
 
-  const { left, height, top, width } = getRect(element)
-  const { x, y } = getOffset(element)
+  const { x, y } = getOffset(instance)
   const siteCanvasRect = document.querySelector('.site-canvas').getBoundingClientRect()
   const componentName = getCurrent().schema?.componentName || ''
   const scale = useLayout().getScale()
@@ -366,7 +346,7 @@ export const updateRect = (id) => {
   clearHover()
 
   if (id) {
-    setTimeout(() => setSelectRect(querySelectById(id)))
+    setTimeout(() => setSelectRect(useNode().getInstanceById(id)))
   } else {
     // 如果选中的是body，不清除选中框
     if (!selectState.componentName && selectState.width > 0) {
@@ -441,38 +421,38 @@ const getPosLine = (rect, configure) => {
   return { type }
 }
 
-const isBodyEl = (element) => element.nodeName === 'BODY'
-
 const setHoverRect = (element, data) => {
   if (!element) {
     return clearHover()
   }
-  const componentName = element.getAttribute(NODE_TAG)
-  const id = element.getAttribute(NODE_UID)
+
+  const componentName = element[NODE_TAG]
+
+  const id = element[NODE_UID]
+
   const configure = getConfigure(componentName)
   const rect = getRect(element)
   const { left, height, top, width } = rect
   const { x, y } = getOffset(element)
   const siteCanvasRect = document.querySelector('.site-canvas').getBoundingClientRect()
   const scale = useLayout().getScale()
-
   hoverState.configure = configure
 
   if (data) {
     let childEle = null
     lineState.id = id
     lineState.configure = configure
-    const rectType = isBodyEl(element) ? POSITION.IN : getPosLine(rect, configure).type
+    const rectType = !element ? POSITION.IN : getPosLine(rect, configure).type
 
     // 如果拖拽经过的元素是body或者是带有容器属性的盒子，并且在元素内部插入,则需要特殊处理
-    if ((isBodyEl(element) || configure?.isContainer) && rectType === POSITION.IN) {
-      const { node } = isBodyEl(element) ? { node: getSchema() } : getNode(id, true) || {}
+    if ((!element || configure?.isContainer) && rectType === POSITION.IN) {
+      const { node } = !element ? { node: getSchema() } : getNode(id, true) || {}
       const children = node?.children || []
       if (children.length > 0) {
         // 如果容器盒子有子节点，则以最后一个子节点为拖拽参照物
         const lastNode = children[children.length - 1]
-        childEle = querySelectById(lastNode.id)
-        const childComponentName = element.getAttribute(childEle)
+        childEle = useNode().getInstanceById(lastNode.id)
+        const childComponentName = childEle[NODE_TAG]
         const Childconfigure = getConfigure(childComponentName)
         lineState.id = lastNode.id
         lineState.configure = Childconfigure
@@ -519,6 +499,12 @@ const setHoverRect = (element, data) => {
 const absoluteMove = (event, element) => {
   const { clientX, clientY } = event
   const { offsetX, offsetY, horizontal, vertical, height, width, x, y } = dragState.offset
+
+  // FIXME: 这里需要把绝对布局的位移信息更新到 schema 中
+  // 真实元素节点
+  if (element.nodeType !== 1) {
+    return
+  }
 
   element.style.position = 'absolute'
 
@@ -580,49 +566,53 @@ export const dragMove = (event, isHover) => {
   // 如果仅仅是mouseover事件直接return,并重置拖拽位置状态，优化性能
   if (isHover) {
     lineState.position = ''
-    setHoverRect(getElement(event.target), null)
+
+    setHoverRect(getInstanceByTarget(event.target), null)
 
     return
   }
 
-  setHoverRect(getElement(event.target), dragState.data)
+  setHoverRect(getInstanceByTarget(event.target), dragState.data)
 
   if (dragState.draging) {
     // 绝对布局时走的逻辑
-    if (element && absolute) {
-      absoluteMove(event, element)
+    if (element?.subTree?.el && absolute) {
+      absoluteMove(event, element?.subTree?.el)
     }
     setDragPosition({ clientX, x, clientY, y, offsetBottom, offsetTop })
   }
 }
 
 // type == clickTree, 为点击大纲; type == loop-id=xxx ,为点击循环数据
-export const selectNode = async (id, type) => {
-  if (type && type.indexOf('loop-id') > -1) {
-    const loopId = type.split('=')[1]
+export const selectNode = async (id, instance, type) => {
+  let selectType = type
+  let nodeInstance = instance
+
+  if (typeof instance === 'string') {
+    selectType = instance
+    nodeInstance = useNode().getInstanceById(id)
+  }
+
+  if (selectType && selectType.indexOf('loop-id') > -1) {
+    const loopId = selectType.split('=')[1]
     canvasState.loopId = loopId
   }
-  const { node, parent } = getNode(id, true) || {}
-  let element = querySelectById(id, type)
 
-  if (element) {
-    const { rootSelector } = getConfigure(node.componentName)
-    element = rootSelector ? element.querySelector(rootSelector) : element
-  }
+  const { node, parent } = getNode(id, true) || {}
 
   canvasState.current = node
   canvasState.parent = parent
 
-  await scrollToNode(element)
-  setSelectRect(element)
+  await scrollToNode(nodeInstance)
+  setSelectRect(nodeInstance)
   canvasState.emit('selected', node, parent, type)
 
   return node
 }
 
 export const hoverNode = (id, data) => {
-  const element = querySelectById(id)
-  element && setHoverRect(element, data)
+  const instance = useNode().getInstanceById(id)
+  instance && setHoverRect(instance, data)
 }
 
 export const insertNode = (node, position = POSITION.IN, select = true) => {

@@ -15,7 +15,14 @@ import { I18nInjectionKey } from 'vue-i18n'
 import { useBroadcastChannel } from '@vueuse/core'
 import { constants } from '@opentiny/tiny-engine-utils'
 import { generateFunction } from '@opentiny/tiny-engine-controller/utils'
-import renderer, { parseData, setConfigure, setController, globalNotify, isStateAccessor } from './render'
+import renderer, {
+  parseData,
+  setConfigure,
+  setController,
+  getController,
+  globalNotify,
+  isStateAccessor
+} from './render'
 import { getNode as getNodeById, clearNodes, getRoot, setContext, getContext, setCondition, context } from './context'
 import CanvasEmpty from './CanvasEmpty.vue'
 
@@ -277,6 +284,8 @@ const setPagecss = (css = '') => {
 }
 
 const setSchema = async (data) => {
+  getController()?.useNode?.()?.clearInstanceMap?.()
+
   const newSchema = JSON.parse(JSON.stringify(data || schema))
   reset(schema)
   // 页面初始化的时候取消所有状态变量的watchEffect监听

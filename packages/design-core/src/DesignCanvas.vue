@@ -29,7 +29,8 @@ import {
   useLayout,
   useResource,
   useHistory,
-  useModal
+  useModal,
+  useNode
 } from '@opentiny/tiny-engine-controller'
 import materials from '@opentiny/tiny-engine-plugin-materials'
 import { useHttp } from '@opentiny/tiny-engine-http'
@@ -159,6 +160,7 @@ export default {
       materialsPanel: materials.component,
       showMask,
       controller: {
+        useNode,
         // 需要在canvas/render或内置组件里使用的方法
         getMaterial: useResource().getMaterial,
         addHistory: useHistory().addHistory,

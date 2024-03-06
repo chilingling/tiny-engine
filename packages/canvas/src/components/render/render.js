@@ -280,6 +280,35 @@ const getPlainProps = (object = {}) => {
   return props
 }
 
+function WrapHocComponent(Component, props, children) {
+  return {
+    mounted() {
+      const ele = this
+      const keys = [DESIGN_UIDKEY, DESIGN_TAGKEY, DESIGN_LOOPID]
+
+      const { setInstanceMap } = getController()?.useNode?.() || {}
+
+      if (setInstanceMap) {
+        setInstanceMap(props[DESIGN_UIDKEY], this)
+      }
+
+      for (const key of keys) {
+        if (props[key]) {
+          ele._[key] = props[key]
+        }
+      }
+    },
+    unmounted() {
+      const { setInstanceMap } = getController()?.useNode?.() || {}
+
+      setInstanceMap(props[DESIGN_UIDKEY], null)
+    },
+    render() {
+      return h(Component, props, children)
+    }
+  }
+}
+
 const generateCollection = (schema) => {
   if (schema.componentName === 'Collection' && schema.props?.dataSource && schema.children) {
     schema.children.forEach((item) => {
@@ -618,9 +647,11 @@ const renderGroup = (children, scope, parent) => {
       }
 
       return h(
-        getComponent(componentName),
-        getBindProps(schema, mergeScope),
-        Array.isArray(children) ? renderSlot(children, mergeScope, schema) : parseData(children, mergeScope)
+        WrapHocComponent(
+          getComponent(componentName),
+          getBindProps(schema, mergeScope),
+          Array.isArray(children) ? renderSlot(children, mergeScope, schema) : parseData(children, mergeScope)
+        )
       )
     }
 
@@ -710,7 +741,7 @@ export const renderer = {
         return null
       }
 
-      return h(component, getBindProps(schema, mergeScope), getChildren(schema, mergeScope))
+      return h(WrapHocComponent(component, getBindProps(schema, mergeScope), getChildren(schema, mergeScope)))
     }
 
     return loopList?.length ? loopList.map(renderElement) : renderElement()
