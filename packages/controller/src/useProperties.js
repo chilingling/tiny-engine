@@ -155,7 +155,10 @@ const isPageOrBlock = (schema) => [COMPONENT_NAME.Block, COMPONENT_NAME.Page].in
 
 const getProps = (schema, parent) => {
   // 1 现在选中的节点和当前节点一样，不需要重新计算, 2 默认进来由于scheme和properities.schema相等，因此判断如果是“页面或者区块”需要进入if判断
-  if (schema && (properties.schema !== schema || isPageOrBlock(schema))) {
+  // properties.schema !== schema || 
+  // && (isPageOrBlock(schema))
+  console.log('getProps', schema, parent)
+  if (schema) {
     const { props, componentName } = schema
     // 若选中的是page或者 blcok，没有对应schema，ComponentName 给 div 设置根节点属性
     const {
@@ -183,11 +186,15 @@ const setProp = (name, value, type) => {
   }
 
   properties.schema.props = properties.schema.props || {}
+  const { setNodeProps, deleteNodeProps } = useCanvas()
 
   if ((value === '' && type !== 'String') || value === undefined || value === null) {
-    delete properties.schema.props[name]
+    // delete properties.schema.props[name]
+    deleteNodeProps(properties.schema.id, name)
   } else {
-    properties.schema.props[name] = value
+    setNodeProps(properties.schema.id, name, value)
+    // properties.schema.props[name] = value
+    // useCanvas().renderer.value.setTestSchema(properties.schema.id)
   }
 
   // 没有父级，或者不在节点上面，要更新内容。就用setState

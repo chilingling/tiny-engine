@@ -10,7 +10,7 @@
  *
  */
 
-import { h, provide, reactive } from 'vue'
+import { h, inject, provide, reactive, watch, ref } from 'vue'
 import { isHTMLTag, hyphenate } from '@vue/shared'
 import { useBroadcastChannel } from '@vueuse/core'
 import { constants, utils } from '@opentiny/tiny-engine-utils'
@@ -29,6 +29,7 @@ import {
   CanvasPlaceholder
 } from '../builtin'
 import { NODE_UID as DESIGN_UIDKEY, NODE_TAG as DESIGN_TAGKEY, NODE_LOOP as DESIGN_LOOPID } from '../common'
+import { setTestSchema } from './RenderMain'
 
 const { BROADCAST_CHANNEL } = constants
 const { hyphenateRE } = utils
@@ -185,7 +186,8 @@ const renderDefault = (children, scope, parent) =>
     h(renderer, {
       schema: child,
       scope,
-      parent
+      parent,
+      schemaId: child.id
     })
   )
 
@@ -553,9 +555,11 @@ const getBindProps = (schema, scope) => {
   if (componentName === 'CanvasPlaceholder') {
     return {}
   }
-
+  const { $updateKey, ...otherProps } = schema.props
+  // const updateKey = schema.props.$updateKey
   const bindProps = {
-    ...parseData(schema.props, scope),
+    key: schema.props.$updateKey,
+    ...parseData(otherProps, scope),
     [DESIGN_UIDKEY]: id,
     [DESIGN_TAGKEY]: componentName,
     onMoseover: stopEvent,
@@ -583,6 +587,8 @@ const getBindProps = (schema, scope) => {
 
   // 过滤在门户网站上配置的画布丢弃的属性
   invalidity.forEach((prop) => delete bindProps[prop])
+
+  console.log('bindProps', bindProps)
 
   return bindProps
 }
@@ -630,7 +636,7 @@ const renderGroup = (children, scope, parent) => {
 
 const ContainerComponent = ['CanvasCol', 'CanvasRow', 'CanvasRowColContainer']
 
-const getChildren = (schema, mergeScope) => {
+const getChildren = (schema, mergeScope, nodesMap) => {
   const { componentName, children } = schema
   let renderChildren = children
 
@@ -649,7 +655,7 @@ const getChildren = (schema, mergeScope) => {
 
   if (Array.isArray(renderChildren)) {
     if (isNative || isCustomElm) {
-      return renderDefault(renderChildren, mergeScope, schema)
+      return renderDefault(renderChildren, mergeScope, schema, nodesMap)
     } else {
       return isGroup
         ? renderGroup(renderChildren, mergeScope, schema)
@@ -665,14 +671,107 @@ export const renderer = {
   props: {
     schema: Object,
     scope: Object,
-    parent: Object
+    parent: Object,
+    schemaId: String
   },
   setup(props) {
     provide('schema', props.schema)
+    // const updateId = inject('updateId', [])
+    // const nodesMap = inject('nodesMap', new Map())
+
+    // const renderSchema = ref(nodesMap.get(props.schemaId))
+
+    // console.log('props.schemaId000', props.schemaId)
+
+    // watch(
+    //   () => props.schemaId,
+    //   () => {
+    //     console.log('props.schemaId', props.schemaId)
+    //     renderSchema.value = nodesMap.get(props.schemaId)
+    //   },
+    //   {
+    //     immediate: true
+    //   }
+    // )
+
+    // watch(
+    //   () => updateId.value,
+    //   (idArr) => {
+    //     console.log('updateIdupdateIdupdateId')
+    //     for (let i = 0; i < idArr.length; i++) {
+    //       if (idArr[i] === props.schemaId) {
+    //         console.log('updateupdateupdate')
+    //         renderSchema.value = nodesMap.get(props.schemaId)
+    //         updateId.value.splice(i, 1)
+    //       }
+    //     }
+    //   }
+    // )
+
+    // return {
+    //   nodesMap,
+    //   // renderSchema,
+    //   updateId
+    // }
+  },
+  inject: ['updateId', 'nodesMap'],
+  data(){
+    return {
+      renderSchema: this.nodesMap.get(this.schemaId)
+    }
+  },
+  watch: {
+    schemaId(newSchemaId) {
+      console.log('update  newSchemaId', newSchemaId)
+      this.renderSchema = this.nodesMap.get(this.schemaId)
+    },
+    // renderSchema: {
+    //   deep: true,
+    //   handler() {
+    //     console.log('renderSchema changeed')
+    //   }
+    // }
+    // updateId: {
+    //   deep: true,
+    //   handler(updateId) {
+    //     // console.log('updateId change', updateId)
+    //     // console.log('prerenderSchema', this.renderSchema)
+    //     // for (let i = 0; i < updateId.length; i++) {
+    //     //   if (updateId[i] === this.renderSchema.id) {
+    //     //     console.log('updateupdateupdate')
+    //     //     this.renderSchema = {
+    //     //       ...this.nodesMap.get(this.schemaId)
+    //     //     }
+    //     //     console.log('newSchema', this.renderSchema)
+    //     //     // updateId.value.splice(i, 1)
+    //     //   }
+    //     // }
+    //     const shouldUpdate = updateId.some((id) => id === this.renderSchema.id)
+    //     console.log('shouldUpdate', shouldUpdate)
+    //     if (shouldUpdate) {
+    //       this.renderSchema = {
+    //         ...this.nodesMap.get(this.renderSchema.id)
+    //       }
+    //       requestAnimationFrame(() => {
+    //         setTestSchema(this.renderSchema.id, 'remove')
+    //       })
+    //       // this.updateId.value = updateId.filter((id) => id !== this.renderSchema.id)
+    //     }
+    //   }
+    // }
   },
   render() {
-    const { scope, schema, parent } = this
+    const { scope, parent, nodesMap, schemaId, renderSchema, updateId } = this
+    // const schema = nodesMap.get(schemaId)
+    const schema = renderSchema
+    console.log('renderer schema', schema)
+    // console.log('renderer nodesMap', nodesMap)
+    // console.log('renderer updateId', updateId)
+    if (!schema) {
+      return null
+    }
     const { componentName, loop, loopArgs, condition } = schema
+
 
     // 处理数据源和表格fetchData的映射关系
     generateCollection(schema)
@@ -710,7 +809,7 @@ export const renderer = {
         return null
       }
 
-      return h(component, getBindProps(schema, mergeScope), getChildren(schema, mergeScope))
+      return h(component, getBindProps(schema, mergeScope), getChildren(schema, mergeScope, nodesMap))
     }
 
     return loopList?.length ? loopList.map(renderElement) : renderElement()

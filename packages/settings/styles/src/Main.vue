@@ -132,15 +132,17 @@ export default {
       const currentSchema = getCurrentSchema() || pageSchema
 
       state.styleContent = content
-      schema.props = schema.props || {}
-      schema.props.style = styleString
+      // schema.props = schema.props || {}
+      // schema.props.style = styleString
 
-      currentSchema.props = currentSchema.props || {}
+      // currentSchema.props = currentSchema.props || {}
 
       if (styleString) {
-        currentSchema.props.style = styleString
+        // currentSchema.props.style = styleString
+        useCanvas().setNodeProps(schema.id, 'style', styleString)
       } else {
-        delete currentSchema.props.style
+        // delete currentSchema.props.style
+        useCanvas().deleteNodeProps(schema.id, 'style')
       }
 
       addHistory()
@@ -151,15 +153,19 @@ export default {
       const pageSchema = getCanvasPageSchema()
       const currentSchema = getCurrentSchema() || pageSchema
       const schema = getSchema() || pageSchema
+
       if (value !== '') {
-        schema.props.style = value
-        currentSchema.props.style = value
+        // schema.props.style = value
+        // currentSchema.props.style = value
+        console.log('updateStyle', schema, currentSchema)
+        useCanvas().setNodeProps(schema.id, 'style', value)
         state.propertiesList = `已绑定：${value.value}`
         state.lineStyleDisable = false
         addHistory()
       } else {
-        schema.props.style = ''
-        currentSchema.props.style = ''
+        // schema.props.style = ''
+        // currentSchema.props.style = ''
+        useCanvas().setNodeProps(schema.id, 'style', '')
         state.propertiesList = '编辑行内样式'
         state.lineStyleDisable = true
         addHistory()

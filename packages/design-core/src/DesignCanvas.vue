@@ -134,9 +134,12 @@ export default {
       }
 
       const schema = getSchema()
+      const nodesMap = useCanvas().getTestSchema()
+      const testnode = nodesMap.get(node?.id)
+
       // 如果选中的节点是画布，就设置成默认选中最外层schema
-      useProperties().getProps(node || schema, parent)
-      useCanvas().setCurrentSchema(node || schema)
+      useProperties().getProps(testnode || schema, parent)
+      useCanvas().setCurrentSchema(testnode || schema)
       footData.value = getNodePath(node?.id)
       toolbars.visiblePopover = false
     }

@@ -39,7 +39,7 @@
 </template>
 
 <script lang="jsx">
-import { nextTick, reactive, getCurrentInstance, onActivated, ref } from 'vue'
+import { nextTick, reactive, getCurrentInstance, onActivated, ref, watch } from 'vue'
 import { Popover } from '@opentiny/vue'
 import { VueMonaco, CloseIcon } from '@opentiny/tiny-engine-common'
 import { useCanvas, useModal, useHistory, useNotify } from '@opentiny/tiny-engine-controller'
@@ -57,7 +57,7 @@ export default {
   },
   setup(props, { emit }) {
     const app = getCurrentInstance()
-    const { pageState } = useCanvas()
+    const { pageState, schema } = useCanvas()
     const { confirm } = useModal()
     const state = reactive({
       pageData: obj2String(pageState.pageSchema)
@@ -83,6 +83,28 @@ export default {
     const editorChange = (val) => {
       showRed.value = val === obj2String(state.pageData)
     }
+
+    let id = null
+
+    watch(
+      () => pageState.pageSchema,
+      () => {
+        console.log('schemaValueUpdate')
+        if (id) {
+          cancelIdleCallback(id)
+        }
+
+        id = requestIdleCallback(
+          () => {
+            state.pageData = obj2String(pageState.pageSchema)
+          },
+          { timeout: 5000 }
+        )
+      },
+      {
+        deep: true
+      }
+    )
 
     const saveSchema = () => {
       const editorValue = string2Obj(app.refs.container.getEditor().getValue())
@@ -114,12 +136,12 @@ export default {
     }
 
     onActivated(() => {
-      pageState.pageSchema = getSchema()
-      state.pageData = obj2String(pageState.pageSchema)
-      nextTick(() => {
-        window.dispatchEvent(new Event('resize'))
-        showRed.value = state.pageData === app.refs.container.getEditor().getValue()
-      })
+      // pageState.pageSchema = getSchema()
+      // state.pageData = obj2String(pageState.pageSchema)
+      // nextTick(() => {
+      //   window.dispatchEvent(new Event('resize'))
+      //   showRed.value = state.pageData === app.refs.container.getEditor().getValue()
+      // })
     })
 
     return {

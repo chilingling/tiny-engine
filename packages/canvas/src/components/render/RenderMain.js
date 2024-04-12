@@ -10,7 +10,7 @@
  *
  */
 
-import { h, provide, inject, nextTick, shallowReactive, reactive, ref, watch, watchEffect } from 'vue'
+import { h, provide, inject, nextTick, shallowReactive, reactive, ref, watch, watchEffect, toRaw } from 'vue'
 import { I18nInjectionKey } from 'vue-i18n'
 import { useBroadcastChannel } from '@vueuse/core'
 import { constants } from '@opentiny/tiny-engine-utils'
@@ -278,7 +278,9 @@ const setPagecss = (css = '') => {
   }
 }
 
-const setSchema = async (data) => {
+const testSchema = ref(null)
+
+const setSchema = async (data, newTestSchema) => {
   const newSchema = JSON.parse(JSON.stringify(data || schema))
   reset(schema)
   // 页面初始化的时候取消所有状态变量的watchEffect监听
@@ -342,7 +344,46 @@ const setSchema = async (data) => {
     )
   })
 
+  console.log('newTestSchema', newTestSchema)
+  console.log('typeof', typeof newTestSchema)
+
+  testSchema.value = newTestSchema
+
   return schema
+}
+
+const updateId = ref([])
+
+export const setTestSchema = (newId, type = 'add') => {
+  requestAnimationFrame(() => {
+    // if (type === 'remove') {
+    //   updateId.value = updateId.value.filter((id) => id !== newId)  
+    //   return 
+    // }
+    if (testSchema.value) {
+      // const node = testSchema.value.get(newId)
+      const origin = testSchema.value.get(newId)
+      // eslint-disable-next-line no-self-assign
+      if (!origin.props.$updateKey) {
+        origin.props.$updateKey = 0
+      }
+
+      origin.props.$updateKey++
+      // if (!origin.updateKey) {
+      //   origin.updateKey = 0
+      // }
+
+      // origin.updateKey++
+      
+      // Object.assign(origin, JSON.parse(JSON.stringify(origin)))
+    }
+    console.log('set TestSchema, newvalue', testSchema.value.get(newId))
+    // updateId.value.push(newId)
+    
+  })
+  // console.log('setTestSchema111', newSchema)
+  // testSchema.value = newSchema
+  // refreshKey.value++
 }
 
 const getNode = (id, parent) => (id ? getNodeById(id, parent) : schema)
@@ -350,10 +391,13 @@ const getNode = (id, parent) => (id ? getNodeById(id, parent) : schema)
 export default {
   setup() {
     provide('rootSchema', schema)
+    provide('nodesMap', testSchema)
+    provide('updateId', updateId)
 
     const { locale } = inject(I18nInjectionKey).global
     const { data } = useBroadcastChannel({ name: BROADCAST_CHANNEL.CanvasLang })
     const { post } = useBroadcastChannel({ name: BROADCAST_CHANNEL.SchemaLength })
+    const testNode = ref(null)
 
     watch(data, () => {
       locale.value = data.value
@@ -365,6 +409,33 @@ export default {
         post(length)
       }
     )
+
+    watch(
+      () => testSchema.value,
+      (newValue) => {
+        // refreshKey.value++
+        console.log('changechange', newValue)
+        if (testSchema.value) {
+          testNode.value = testSchema.value.get("54780a26")
+        }
+        // newValue.onChange(() => {
+        //   console.log('vanbafdsafdfs')
+        // })
+      },
+      {
+        deep: true
+      }
+    )
+
+    // watch(
+    //   () => testNode.value,
+    //   () => {
+    //     console.log('iframe test node value change ', testNode.value)
+    //   },
+    //   {
+    //     deep: true
+    //   }
+    // )
 
     // 这里监听schema.methods，为了保证methods上下文环境始终为最新
     watch(
@@ -379,10 +450,20 @@ export default {
   },
   render() {
     // 渲染画布增加根节点，与出码和预览保持一致
+    const rootSchema = testSchema.value?.get?.('root_id')
+    // if (!rootSchema) {
+    //   return 
+    // }
+
     const rootChildrenSchema = {
       componentName: 'div',
-      props: schema.props,
-      children: schema.children
+      props: rootSchema?.props || {},
+      children: rootSchema?.children || [],
+      id: 'root'
+    }
+    console.log('testSchema.value', testSchema.value)
+    if (testSchema.value) {
+      testSchema.value.set('root', rootChildrenSchema)
     }
 
     return h(
@@ -393,7 +474,7 @@ export default {
         ref: 'page',
         className: 'design-page'
       },
-      schema.children?.length ? h(renderer, { schema: rootChildrenSchema, parent: schema }) : [h(CanvasEmpty)]
+      rootSchema?.children?.length ? h(renderer, { schema: rootChildrenSchema, parent: null, schemaId: 'root' }) : [h(CanvasEmpty)]
     )
   }
 }
@@ -424,7 +505,8 @@ export const api = {
   getGlobalState,
   getDataSourceMap,
   setDataSourceMap,
-  setGlobalState
+  setGlobalState,
+  setTestSchema
 }
 
 const canvasApi = {

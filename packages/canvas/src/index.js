@@ -51,7 +51,8 @@ import {
   setGlobalState,
   getGlobalState,
   getDocument,
-  canvasDispatch
+  canvasDispatch,
+  setTestSchema
 } from './components/container/container'
 
 export {
@@ -96,7 +97,8 @@ export {
   getGlobalState,
   getDocument,
   canvasDispatch,
-  createRender
+  createRender,
+  setTestSchema
 }
 
 export default CanvasContainer

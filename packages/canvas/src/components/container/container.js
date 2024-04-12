@@ -244,47 +244,63 @@ const getRect = (element) => {
 
 const inserAfter = ({ parent, node, data }) => {
   const parentChildren = parent.children
-  const index = parentChildren.indexOf(node)
-  parent.children.splice(index + 1, 0, data)
+  // const index = parentChildren.indexOf(node)
+  // parent.children.splice(index + 1, 0, data)
+  const { insertNode, getNodeIndex } = useCanvas()
+  const index = getNodeIndex(parent.id, node.id)
+  console.log('insertAfter', index + 1)
+  insertNode(parent.id, data, index + 1)
 }
 
 const insertBefore = ({ parent, node, data }) => {
   const parentChildren = parent.children
-  const index = parentChildren.indexOf(node)
-  parent.children.splice(index, 0, data)
+  // const index = parentChildren.indexOf(node)
+  // parent.children.splice(index, 0, data)
+  const { insertNode, getNodeIndex } = useCanvas()
+  
+  const index = getNodeIndex(parent.id, node.id)
+  console.log('parent.id', parent.id)
+  console.log('insertBefore', index)
+  insertNode(parent.id, data, index)
 }
 
 const insertInner = ({ node, data }, position) => {
   node.children = node.children || []
 
   if (position === POSITION.TOP || position === POSITION.LEFT) {
-    node.children.unshift(data)
+    // node.children.unshift(data)
+    console.log('insert inner', 0)
+    useCanvas().insertNode(node.id, data, 0)
   } else {
-    node.children.push(data)
+    // node.children.push(data)
+    console.log('insert inner', node.children.length)
+    useCanvas().insertNode(node.id, data, node.children.length)
   }
 }
 
 export const removeNode = ({ parent, node }) => {
   const parentChildren = parent.children || parent.value
   const index = parentChildren.indexOf(node)
+  useCanvas().deleteNode(node.id)
 
-  if (index > -1) {
-    parentChildren.splice(index, 1)
-  } else {
-    const templates = parentChildren.filter(({ componentName }) => componentName === 'Template')
+  // if (index > -1) {
+  //   // parentChildren.splice(index, 1)
+  //   useCanvas().deleteNode(node.id)
+  // } else {
+  //   const templates = parentChildren.filter(({ componentName }) => componentName === 'Template')
 
-    templates.forEach((template) => {
-      const { children } = template
+  //   templates.forEach((template) => {
+  //     const { children } = template
 
-      if (children.length) {
-        children.splice(children.indexOf(node), 1)
-      }
+  //     if (children.length) {
+  //       children.splice(children.indexOf(node), 1)
+  //     }
 
-      if (!children.length) {
-        parentChildren.splice(parentChildren.indexOf(template), 1)
-      }
-    })
-  }
+  //     if (!children.length) {
+  //       parentChildren.splice(parentChildren.indexOf(template), 1)
+  //     }
+  //   })
+  // }
 }
 
 export const removeNodeById = (id) => {
@@ -664,6 +680,8 @@ export const copyNode = (id) => {
   }
   const { node, parent } = getNode(id, true)
 
+  console.log('copyNode', node)
+
   inserAfter({ parent, node, data: copyObject(node) })
   getController().addHistory()
 }
@@ -783,12 +801,18 @@ export const getNodePath = (id, nodes = []) => {
   return nodes
 }
 
-export const setSchema = async (schema) => {
+export const setSchema = async (schema, data) => {
   clearHover()
   clearSelect()
-  canvasState.schema = await getRenderer()?.setSchema(schema)
+  canvasState.schema = await getRenderer()?.setSchema(schema, data)
 
   return canvasState.schema
+}
+
+export const setTestSchema = (nodesMap) => {
+  console.log('setTestSchema 000')
+
+  // getRenderer()?.setTestSchema(nodesMap)
 }
 
 export const setConfigure = (configure) => {
@@ -828,6 +852,7 @@ export const initCanvas = ({ renderer, iframe, emit, controller }) => {
 
   // 在点击刷新按钮的情况下继续保留最新的schema.json
   const schema = currentSchema ? currentSchema : useCanvas().getPageSchema()
+  const testData = useCanvas().getTestSchema()
 
   canvasState.iframe = iframe
   canvasState.emit = emit
@@ -847,7 +872,7 @@ export const initCanvas = ({ renderer, iframe, emit, controller }) => {
   renderer.setDataSourceMap(useResource().resState.dataSource)
   // 设置画布全局的utils工具类上下文环境
   setUtils(useResource().resState.utils)
-  setSchema(schema)
+  setSchema(schema, toRaw(testData))
   setConfigure(useResource().getConfigureMap())
   canvasDispatch('updateDependencies', { detail: useResource().resState.thirdPartyDeps })
   canvasState.loading = false
