@@ -47,6 +47,7 @@ import RadialGradient from './RadialGradient.vue'
 import ColorOverlay from './ColorOverlay.vue'
 import BackgroundImageGradient from './BackgroundImageGradient.vue'
 import { BACKGROUND_PROPERTY } from '../../js/styleProperty'
+import img from '../../../assets/bgcModal.png'
 
 export default {
   components: {
@@ -86,7 +87,7 @@ export default {
           styleComponent: 'ImageSetting',
           iconName: 'background-image',
           value: {
-            imageUrl: 'img/bgcModal.png',
+            imageUrl: img,
             position: '0px 0px',
             size: 'auto'
           }

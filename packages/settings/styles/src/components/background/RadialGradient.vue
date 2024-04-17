@@ -134,7 +134,7 @@ onMounted(() => {
 .image-inner {
   width: 100%;
   height: 100%;
-  background-image: url(img/bgcModal.png);
+  background-image: url(./bgcModal.png);
   background-size: contain;
   background-repeat: no-repeat;
   background-position: 50% 50%;

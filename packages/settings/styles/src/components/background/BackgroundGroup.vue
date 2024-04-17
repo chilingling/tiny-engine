@@ -91,6 +91,7 @@ import ResetButton from '../inputs/ResetButton.vue'
 import BackgroundImageSetting from './BackgroundImageSetting.vue'
 import { useProperties } from '../../js/useStyle'
 import { BACKGROUND_PROPERTY, TYPE_TEXT, PROPERTY_DEFAULT_VALUE } from '../../js/styleProperty'
+import img from '../../../assets/bgcModal.png'
 
 // 顶层 schema 没有 id，所以指定一个 page-root-id 作为一个 key
 const PAGE_ROOT_ID = 'page-root-id'
@@ -278,7 +279,8 @@ export default {
     const openBackgroundImageModal = (event, { isAdd, index }) => {
       if (isAdd) {
         const styleObj = {
-          [BACKGROUND_PROPERTY.BackgroundImage]: 'url(img/bgcModal.png)',
+          // [BACKGROUND_PROPERTY.BackgroundImage]: 'url(img/bgcModal.png)',
+          [BACKGROUND_PROPERTY.BackgroundImage]: `url(${img})`,
           [BACKGROUND_PROPERTY.BackgroundPosition]: '0px 0px',
           [BACKGROUND_PROPERTY.BackgroundSize]: 'auto'
         }
