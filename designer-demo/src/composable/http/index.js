@@ -1,19 +1,11 @@
-import { createApp } from 'vue'
-import { HttpService } from '@opentiny/tiny-engine'
 import { useBroadcastChannel } from '@vueuse/core'
 import { constants } from '@opentiny/tiny-engine-utils'
-import Login from './Login.vue'
+import HttpService from './httpServices'
+import mockConfig from '../../routes'
 
-const LOGIN_EXPIRED_CODE = 401
 const { BROADCAST_CHANNEL } = constants
 
 const { post: globalNotify } = useBroadcastChannel({ name: BROADCAST_CHANNEL.Notify })
-
-const procession = {
-  promiseLogin: null,
-  mePromise: {}
-}
-let loginVM = null
 
 const showError = (url, message) => {
   globalNotify({
@@ -41,7 +33,7 @@ const preRequest = (config) => {
 
 const preResponse = (res) => {
   if (res.data?.error) {
-    showError(res.config?.url, res?.data?.error?.message)
+    showError(res.config?.url, res?.data?.error?.message || res?.data?.error)
 
     return Promise.reject(res.data.error)
   }
@@ -49,52 +41,8 @@ const preResponse = (res) => {
   return res.data?.data
 }
 
-const openLogin = () => {
-  if (!window.lowcode) {
-    const loginDom = document.createElement('div')
-    document.body.appendChild(loginDom)
-    loginVM = createApp(Login).mount(loginDom)
-
-    window.lowcode = {
-      platformCenter: {
-        Session: {
-          rebuiltCallback: function () {
-            loginVM.closeLogin()
-
-            procession.mePromise.resolve('login ok')
-            procession.promiseLogin = null
-            procession.mePromise = {}
-          }
-        }
-      }
-    }
-  }
-
-  return new Promise((resolve, reject) => {
-    if (!procession.promiseLogin) {
-      procession.promiseLogin = loginVM.openLogin(procession, '/api/rebuildSession')
-      procession.promiseLogin.then((response) => {
-        HttpService.apis.request(response.config).then(resolve, reject)
-      })
-    }
-  })
-}
-
 const errorResponse = (error) => {
-  // 用户信息失效时，弹窗提示登录
   const { response } = error
-
-  if (response?.status === LOGIN_EXPIRED_CODE) {
-    // vscode 插件环境弹出输入框提示登录
-    if (window.vscodeBridge) {
-      return Promise.resolve(true)
-    }
-
-    // 浏览器环境弹出小窗登录
-    if (response?.headers['x-login-url']) {
-      return openLogin()
-    }
-  }
 
   showError(error.config?.url, error?.message)
 
@@ -124,7 +72,9 @@ const customizeHttpService = () => {
     interceptors: {
       request: [preRequest],
       response: [[preResponse, errorResponse]]
-    }
+    },
+    mockConfig,
+    enableMock: true
   }
 
   HttpService.apis.setOptions(options)

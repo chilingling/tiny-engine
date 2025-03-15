@@ -15,8 +15,6 @@ import {
   Fullscreen,
   Lang,
   ViewSetting,
-  Logo,
-  Lock,
   Media,
   Redoundo,
   Save,
@@ -36,7 +34,8 @@ import {
   I18n,
   Bridge,
   Block,
-  Datasource,
+  // TODO: demo 支持 datasource
+  // Datasource,
   Robot,
   Props,
   Events,
@@ -49,6 +48,9 @@ import {
 } from '@opentiny/tiny-engine'
 import engineConfig from './engine.config'
 import { HttpService } from './src/composable'
+import Header from './src/plugins/header'
+import ResetDataBase from './src/plugins/resetDatabase'
+
 
 export default {
   root: {
@@ -63,12 +65,15 @@ export default {
       isShowLine: true,
       isShowCollapse: true,
       toolbars: {
-        left: ['engine.toolbars.breadcrumb', 'engine.toolbars.lock', 'engine.toolbars.logo'],
+        left: [
+          'engine.toolbars.header',
+          'engine.toolbars.breadcrumb', 
+        ],
         center: ['engine.toolbars.media'],
         right: [
           ['engine.toolbars.themeSwitch', 'engine.toolbars.redoundo', 'engine.toolbars.clean'],
           ['engine.toolbars.preview'],
-          ['engine.toolbars.generate-code', 'engine.toolbars.save']
+          ['engine.toolbars.generate-code', 'engine.toolbars.save', 'engine.toolbars.resetDataBase']
         ],
         collapse: [
           ['engine.toolbars.collaboration'],
@@ -88,10 +93,9 @@ export default {
     }
   ],
   toolbars: [
+    Header,
     ThemeSwitch,
-    Logo,
     Breadcrumb,
-    Lock,
     Media,
     Redoundo,
     Collaboration,
@@ -102,14 +106,15 @@ export default {
     Save,
     Fullscreen,
     Lang,
-    ViewSetting
+    ViewSetting,
+    ResetDataBase
   ],
   plugins: [
     Materials,
     Tree,
     Page,
     [Block, { options: { ...Block.options, mergeCategoriesAndGroups: true } }],
-    Datasource,
+    // Datasource,
     Bridge,
     I18n,
     Script,

@@ -11,13 +11,20 @@
  */
 
 // 导入@opentiny/tiny-engine时，内部的依赖包也会逐个导入，可能会执行useComplie，此时需要templateHashMap。所以需要先执行一次defineEntry
-import { registry } from './defineEntry.js'
 import { init } from '@opentiny/tiny-engine'
+import { registry } from './defineEntry.js'
 import { configurators } from './configurators/'
 import 'virtual:svg-icons-register'
+import { initIndexDB } from './db'
 
-init({
-  registry,
-  configurators,
-  createAppSignal: ['global_service_init_finish']
-})
+async function initDemo() {
+  await initIndexDB()
+  
+  init({
+    registry,
+    configurators,
+    createAppSignal: ['global_service_init_finish']
+  })
+}
+
+initDemo()
