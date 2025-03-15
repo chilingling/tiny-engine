@@ -16,7 +16,7 @@
 <script setup>
 import { ref } from 'vue'
 import { TinyButton, TinyDialogBox } from '@opentiny/vue'
-import { useNotify } from '@opentiny/tiny-engine-meta-register'
+import { useNotify } from '@opentiny/tiny-engine'
 import { resetDataBase } from '../../db'
 
 const dialogVisible = ref(false)

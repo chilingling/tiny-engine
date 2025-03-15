@@ -1,4 +1,4 @@
-import { defineService, META_SERVICE } from '@opentiny/tiny-engine-meta-register'
+import { defineService, META_SERVICE } from '@opentiny/tiny-engine'
 import axios from 'axios'
 import AxiosMockAdapter from 'axios-mock-adapter'
 
