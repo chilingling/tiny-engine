@@ -1,0 +1,13 @@
+# Add directories or file patterns to ignore during indexing (e.g. foo/ or *.csv)
+node_modules
+dist/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+lerna-debug.log
+
+.env.local
+.env.*.local
+
+.idea
+.vscode

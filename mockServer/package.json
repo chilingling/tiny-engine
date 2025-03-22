@@ -28,11 +28,16 @@
     "build:static": "ncp src/assets dist/assets && ncp src/mock dist/mock && ncp src/database dist/database",
     "build": "npm run build:js && npm run build:static",
     "test": "jest",
+    "test:ai": "node test-ai-chat.js",
+    "test:ai-mcp": "node test-ai-mcp.js",
     "lint": "eslint --fix ."
   },
   "dependencies": {
     "@babel/runtime": "^7.9.2",
+    "@modelcontextprotocol/sdk": "^1.2.0",
     "@seald-io/nedb": "^4.0.2",
+    "axios": "~0.28.0",
+    "dotenv": "^16.3.1",
     "fs-extra": "^11.1.1",
     "glob": "^10.3.4",
     "koa": "^2.11.0",
@@ -40,7 +45,8 @@
     "koa-compose": "^4.1.0",
     "koa-jwt": "^3.6.0",
     "koa-router": "^8.0.8",
-    "koa-static2": "^0.1.8"
+    "koa-static2": "^0.1.8",
+    "openai": "^4.89.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.8.4",

@@ -205,10 +205,11 @@ export default {
     // 引入区块不存放在localstorage的原因：因为区块是可以变化的，用户可能在同一个会话中，对区块进行了删除和创建。那么存放的数据就不是即时数据了。
     const getSendSeesionProcess = () => {
       const sendProcess = { ...sessionProcess }
-      const firstMessage = sendProcess.messages[0]
+      // const firstMessage = sendProcess.messages[0]
       sendProcess.messages = [
-        { ...firstMessage, content: `${getBlockContent()}\n${codeRules}\n${firstMessage.content}` },
-        ...sendProcess.messages.slice(1)
+        // { ...firstMessage, content: `${getBlockContent()}\n${codeRules}\n${firstMessage.content}` },
+        // { ...firstMessage },
+        ...sendProcess.messages
       ]
       delete sendProcess.displayMessages
       return sendProcess
@@ -223,16 +224,20 @@ export default {
       getMetaApi(META_SERVICE.Http)
         .post('/app-center/api/ai/chat', getSendSeesionProcess(), { timeout: 600000 })
         .then((res) => {
-          const { originalResponse, schema, replyWithoutCode } = res
+          const {
+            originalResponse,
+            replyWithoutCode
+            // schema
+          } = res
           const responseMessage = getAiRespMessage(originalResponse.role, originalResponse.content)
-          const respDisplayMessage = getAiRespMessage(originalResponse.role, replyWithoutCode)
+          const respDisplayMessage = getAiRespMessage(originalResponse.role, replyWithoutCode.content)
           sessionProcess.messages.push(responseMessage)
           sessionProcess.displayMessages.push(respDisplayMessage)
-          messages.value[messages.value.length - 1].content = replyWithoutCode
+          messages.value[messages.value.length - 1].content = replyWithoutCode.content
           setContextSession()
-          if (schema?.schema) {
-            createNewPage(schema.schema)
-          }
+          // if (schema?.schema) {
+          //   createNewPage(schema.schema)
+          // }
           inProcesing.value = false
           connectedFailed.value = false
         })

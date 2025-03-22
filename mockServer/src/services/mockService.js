@@ -16,6 +16,9 @@ import SourceService from './source'
 import BlockGroupService from './blockGroup'
 import BlockCategoryService from './blockCategory'
 import Schema2CodeServcice from './schema2code'
+import AiService from './ai'
+// import MCPService from './mcpService'
+
 export default class MockService {
   schema2codeService
   pageService
@@ -24,6 +27,8 @@ export default class MockService {
   sourceService
   blockGroupService
   blockCategoryService
+  aiChatService
+  // mcpService
 
   constructor() {
     this.schema2codeService = new Schema2CodeServcice()
@@ -33,5 +38,7 @@ export default class MockService {
     this.sourceService = new SourceService()
     this.blockGroupService = new BlockGroupService()
     this.blockCategoryService = new BlockCategoryService()
+    this.aiChatService = new AiService()
+    // this.mcpService = new MCPService()
   }
 }

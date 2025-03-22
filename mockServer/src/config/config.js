@@ -10,7 +10,17 @@
  *
  */
 
+// 加载环境变量
+require('dotenv').config()
+
 module.exports = {
   port: process.env.MOCK_PORT || 9090,
-  env: process.env.NODE_ENV || 'development' // Current mode
+  env: process.env.NODE_ENV || 'development', // Current mode
+
+  // OpenAI API 配置
+  openai: {
+    apiKey: process.env.OPENAI_API_KEY || '',
+    apiBaseUrl: process.env.OPENAI_API_BASE_URL || 'https://api.openai.com/v1',
+    model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo'
+  }
 }

@@ -224,4 +224,13 @@ router.post('block-history/create', async (ctx) => {
   ctx.body = await mockService.blockHistoryService.create(ctx.request.body)
 })
 
+router.post('/app-center/api/ai/chat', async (ctx) => {
+  ctx.body = await mockService.aiChatService.chat(ctx.request.body)
+})
+
+// MCP 聊天接口
+// router.post('/app-center/api/ai/mcp-chat', async (ctx) => {
+//   ctx.body = await mockService.mcpService.chat(ctx.request.body)
+// })
+
 export default router
