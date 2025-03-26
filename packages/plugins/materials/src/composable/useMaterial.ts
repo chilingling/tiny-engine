@@ -362,6 +362,46 @@ const addComponents = (materialBundle) => {
 }
 
 /**
+ * 使用 requestIdleCallback 分批编译区块
+ * @param {Array} blocks 需要编译的区块数组
+ */
+const compileBlocksInBatches = (blocks) => {
+  let currentIndex = 0
+  const batchSize = 2 // 每批处理2个区块
+  const timeout = 1000 // 设置1秒超时，确保任务能够完成
+
+  const processNextBatch = async (deadline) => {
+    const endIndex = Math.min(currentIndex + batchSize, blocks.length)
+
+    // 处理当前批次的区块
+    const promises = []
+    for (let i = currentIndex; i < endIndex; i++) {
+      promises.push(getBlockCompileRes(blocks[i]))
+    }
+
+    // 等待当前批次的所有区块编译完成
+    await Promise.all(promises)
+
+    currentIndex = endIndex
+
+    // 如果还有区块需要处理，继续下一批
+    if (currentIndex < blocks.length) {
+      // 检查是否还有空闲时间
+      if (deadline.timeRemaining() > 0) {
+        // 如果还有空闲时间，立即处理下一批
+        processNextBatch(deadline)
+      } else {
+        // 如果没有空闲时间，请求下一个空闲期
+        requestIdleCallback(processNextBatch, { timeout })
+      }
+    }
+  }
+
+  // 开始处理第一批区块
+  requestIdleCallback(processNextBatch, { timeout })
+}
+
+/**
  * 添加物料Bundle文件中的区块类型物料
  * @param {*} blocks 物料包Bundle.json文件中blocks对象
  */
@@ -370,8 +410,8 @@ const addBlocks = (blocks) => {
     return
   }
 
-  // 提前构建区块
-  blocks.map((item) => getBlockCompileRes(item))
+  // 提前分批编译区块
+  compileBlocksInBatches(blocks)
 
   // 默认区块都会展示在默认分组中
   if (!materialState.blocks?.[0]?.children) {
