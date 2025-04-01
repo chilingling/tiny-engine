@@ -112,12 +112,25 @@
 </template>
 
 <script>
-import { ref, onMounted, watchEffect } from 'vue'
+import { ref, onMounted, watchEffect, onBeforeUnmount } from 'vue'
 import { TinyLayout, TinyRow, TinyCol, TinyButton, TinyInput, Notify, Loading, TinyPopover } from '@opentiny/vue'
-import { useCanvas, useHistory, usePage, useModal, getMetaApi, META_SERVICE } from '@opentiny/tiny-engine-meta-register'
+import {
+  useCanvas,
+  useHistory,
+  usePage,
+  useModal,
+  getMetaApi,
+  META_SERVICE,
+  getAllAiTools
+} from '@opentiny/tiny-engine-meta-register'
 import { extend } from '@opentiny/vue-renderless/common/object'
+import { zodToJsonSchema } from 'zod-to-json-schema'
 import RobotSettingPopover from './RobotSettingPopover.vue'
 import { getBlockContent, initBlockList, AIModelOptions } from './js/robotSetting'
+import { tools } from './tools'
+
+// WebSocket连接配置
+const WS_URL = 'ws://localhost:4090'
 
 export default {
   components: {
@@ -145,10 +158,13 @@ export default {
     const { confirm } = useModal()
     const tokenValue = ref('')
     const showPopover = ref(false)
-
+    const ws = ref(null)
+    const wsConnected = ref(false)
+    const aiTools = getAllAiTools()
     const { pageSettingState, getDefaultPage } = usePage()
     const ROOT_ID = pageSettingState.ROOT_ID
     const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay))
+
     watchEffect(() => {
       avatarUrl.value = 'img/defaultAvator.png'
     })
@@ -220,34 +236,196 @@ export default {
       content,
       name: 'AI'
     })
-    const sendRequest = () => {
-      getMetaApi(META_SERVICE.Http)
-        .post('/app-center/api/ai/chat', getSendSeesionProcess(), { timeout: 600000 })
-        .then((res) => {
-          const {
-            originalResponse,
-            replyWithoutCode
-            // schema
-          } = res
-          const responseMessage = getAiRespMessage(originalResponse.role, originalResponse.content)
-          const respDisplayMessage = getAiRespMessage(originalResponse.role, replyWithoutCode.content)
-          sessionProcess.messages.push(responseMessage)
-          sessionProcess.displayMessages.push(respDisplayMessage)
-          messages.value[messages.value.length - 1].content = replyWithoutCode.content
-          setContextSession()
-          // if (schema?.schema) {
-          //   createNewPage(schema.schema)
-          // }
-          inProcesing.value = false
-          connectedFailed.value = false
-        })
-        .catch(() => {
+
+    // 初始化WebSocket连接
+    const initWebSocket = () => {
+      if (ws.value) {
+        ws.value.close()
+      }
+
+      try {
+        ws.value = new WebSocket(WS_URL)
+
+        ws.value.onopen = () => {
+          wsConnected.value = true
+          // 发送初始化消息
+          ws.value.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }))
+        }
+
+        ws.value.onmessage = async (event) => {
+          try {
+            const data = JSON.parse(event.data)
+
+            // 根据消息类型处理不同的响应
+            switch (data.type) {
+              case 'ping':
+                // 处理ping响应
+                console.log('ping', data)
+                break
+              case 'welcome':
+                // 处理欢迎消息
+                break
+              case 'get_builtin_tools': {
+                const toolsFiltered = aiTools.map(({ handler, inputSchema, ...rest }) => ({
+                  ...rest,
+                  inputSchema: zodToJsonSchema(inputSchema)
+                }))
+                console.log('tools', JSON.stringify(toolsFiltered))
+                // 获取内置工具
+                ws.value.send(
+                  JSON.stringify({
+                    type: 'register_builtin_tools',
+                    tools: toolsFiltered
+                  })
+                )
+                break
+              }
+              case 'call_builtin_tool': {
+                // 获取内置工具
+                try {
+                  console.log('call_builtin_tool', data)
+                  const tool = aiTools.find((tool) => tool.name === data.toolName)
+                  console.log('tool will be called', tool)
+
+                  if (tool) {
+                    const res = await tool.handler({ ...JSON.parse(data.arg_string), toolCallId: data.toolCallId })
+                    console.log('res', res)
+
+                    ws.value.send(
+                      JSON.stringify({
+                        type: 'call_builtin_tool_response',
+                        toolCallId: data.toolCallId,
+                        content: res
+                      })
+                    )
+                  }
+                } catch (error) {
+                  console.error('error', error)
+                  ws.value.send(
+                    JSON.stringify({
+                      type: 'call_builtin_tool_response',
+                      toolCallId: data.toolCallId,
+                      error: error.message
+                    })
+                  )
+                }
+                break
+              }
+              case 'chat_response': {
+                // 处理AI聊天响应
+                console.log('event ', event)
+                console.log('data', data)
+                if (data.data?.originalResponse) {
+                  const { originalResponse, replyWithoutCode } = data.data
+                  const responseMessage = getAiRespMessage(originalResponse.role, originalResponse.content)
+                  const respDisplayMessage = getAiRespMessage(originalResponse.role, replyWithoutCode.content)
+                  sessionProcess.messages.push(responseMessage)
+                  sessionProcess.displayMessages.push(respDisplayMessage)
+                  messages.value[messages.value.length - 1].content = replyWithoutCode.content
+                  setContextSession()
+                  inProcesing.value = false
+                  connectedFailed.value = false
+                }
+                break
+              }
+              default:
+              // 处理其他类型消息
+            }
+          } catch (error) {
+            // 处理消息解析错误
+          }
+        }
+
+        ws.value.onerror = () => {
+          wsConnected.value = false
+        }
+
+        ws.value.onclose = () => {
+          wsConnected.value = false
+          // 添加重连逻辑
+          setTimeout(() => {
+            if (!ws.value || ws.value.readyState === WebSocket.CLOSED) {
+              initWebSocket()
+            }
+          }, 3000)
+        }
+      } catch (error) {
+        wsConnected.value = false
+      }
+    }
+
+    const sendRequest = async () => {
+      // 尝试通过WebSocket发送，如果不成功则fallback到HTTP
+      if (wsConnected.value && ws.value && ws.value.readyState === WebSocket.OPEN) {
+        const message = {
+          type: 'chat',
+          content: getSendSeesionProcess(),
+          // content: {
+          //   query: messages.value[messages.value.length - 2].content,
+          //   model: selectedModel.value.value,
+          //   token: tokenValue.value
+          // },
+          timestamp: Date.now()
+        }
+
+        try {
+          ws.value.send(JSON.stringify(message))
+          // console.log('res', res)
+          // const {
+          //   originalResponse,
+          //   replyWithoutCode
+          //   // schema
+          // } = res
+          // const responseMessage = getAiRespMessage(originalResponse.role, originalResponse.content)
+          // const respDisplayMessage = getAiRespMessage(originalResponse.role, replyWithoutCode.content)
+          // sessionProcess.messages.push(responseMessage)
+          // sessionProcess.displayMessages.push(respDisplayMessage)
+          // messages.value[messages.value.length - 1].content = replyWithoutCode.content
+          // setContextSession()
+          // // if (schema?.schema) {
+          // //   createNewPage(schema.schema)
+          // // }
+          // inProcesing.value = false
+          // connectedFailed.value = false
+          // WebSocket请求已发送，响应将通过onmessage事件处理
+          return
+        } catch (error) {
           messages.value[messages.value.length - 1].content = '连接失败'
           localStorage.removeItem('aiChat')
           inProcesing.value = false
-          connectedFailed.value = false
-        })
+          connectedFailed.value = true
+        }
+      }
+
+      // 使用HTTP发送请求
+      // getMetaApi(META_SERVICE.Http)
+      //   .post('/app-center/api/ai/chat', getSendSeesionProcess(), { timeout: 600000 })
+      //   .then((res) => {
+      //     const {
+      //       originalResponse,
+      //       replyWithoutCode
+      //       // schema
+      //     } = res
+      //     const responseMessage = getAiRespMessage(originalResponse.role, originalResponse.content)
+      //     const respDisplayMessage = getAiRespMessage(originalResponse.role, replyWithoutCode.content)
+      //     sessionProcess.messages.push(responseMessage)
+      //     sessionProcess.displayMessages.push(respDisplayMessage)
+      //     messages.value[messages.value.length - 1].content = replyWithoutCode.content
+      //     setContextSession()
+      //     // if (schema?.schema) {
+      //     //   createNewPage(schema.schema)
+      //     // }
+      //     inProcesing.value = false
+      //     connectedFailed.value = false
+      //   })
+      //   .catch(() => {
+      //     messages.value[messages.value.length - 1].content = '连接失败'
+      //     localStorage.removeItem('aiChat')
+      //     inProcesing.value = false
+      //     connectedFailed.value = true
+      //   })
     }
+
     const scrollContent = async () => {
       await sleep(100)
       const scrollElement = document.getElementById('chatgpt-window')
@@ -350,6 +528,17 @@ export default {
       await initBlockList()
       loadingInstance.close()
       initChat()
+
+      // 初始化WebSocket连接
+      initWebSocket()
+    })
+
+    // 组件卸载前关闭WebSocket连接
+    onBeforeUnmount(() => {
+      if (ws.value) {
+        ws.value.close()
+        ws.value = null
+      }
     })
 
     const endContent = () => {
@@ -407,7 +596,8 @@ export default {
       openAIRobot,
       closePanel,
       tokenValue,
-      showPopover
+      showPopover,
+      wsConnected
     }
   }
 }

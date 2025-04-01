@@ -142,6 +142,12 @@ const getI18n = async ({ init, local }) => {
   }
 }
 
+const existI18nKey = (key) => {
+  const exist = getLangs()[key]
+
+  return exist
+}
+
 const initI18n = async ({ host, hostType, init, local }) => {
   globalParams.host = host
   const hostTypeVar = 'host_type'
@@ -249,6 +255,7 @@ export default () => {
     initAppI18n,
     initBlockI18n,
     getI18nData,
-    initBlockLocalI18n
+    initBlockLocalI18n,
+    existI18nKey
   }
 }

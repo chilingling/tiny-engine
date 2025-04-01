@@ -179,3 +179,8 @@ export const generateRegistry = (registry) => {
 export const getMergeMeta = (id) => {
   return metaHashMap[id]
 }
+
+export const getAllAiTools = () => {
+  console.log('metaHashMap', metaHashMap)
+  return Object.values(metaHashMap).map((meta) => meta.aiTools || []).flat()
+}
