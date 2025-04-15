@@ -1,14 +1,25 @@
 import OpenAI from "openai"
 // import MCPClient from './mcpClient'
-import { getResponseData } from './utils.js'
 import mcpServerManager from './mcpServerManager.js'
 import wsManager from "./wsManager.js"
+import fs from 'fs'
+import path from 'path'
+
 class AiService {
   constructor() {
-    // 配置大模型 API 的基本信息
-    this.apiKey = ''
-    this.apiBaseUrl = 'https://dashscope.aliyuncs.com/compatible-mode/v1'
-    this.model = 'qwq-32b'
+    // 从配置文件读取所有API相关配置
+    this.loadConfigFromFile().then(config => {
+      this.apiKey = config.apiKey || ''
+      this.apiBaseUrl = config.apiBaseUrl || 'https://dashscope.aliyuncs.com/compatible-mode/v1'
+      this.model = config.model || 'qwq-32b'
+      
+      // 初始化OpenAI客户端
+      this.openai = new OpenAI({
+        apiKey: this.apiKey,
+        baseURL: this.apiBaseUrl
+      })
+    })
+
     this.timeout = 60000 // 请求超时时间，默认 60 秒
 
     // MCP 相关配置
@@ -16,10 +27,6 @@ class AiService {
     this.toolExecutors = {} // 工具执行器映射
     this.mcpServerManager = mcpServerManager
     // this.mcpClient = new MCPClient() // MCP 客户端
-    this.openai = new OpenAI({
-        apiKey: this.apiKey,
-        baseURL: this.apiBaseUrl
-    })
 
     // 初始化工具
     // this.initTools()
@@ -27,6 +34,21 @@ class AiService {
     // 初始化 MCP 客户端
     // this.initMCPClient()
   }
+
+  async loadConfigFromFile() {
+    try {
+      // 尝试从配置文件读取配置
+      const configPath = path.resolve(process.cwd(), 'config.js')
+      if (fs.existsSync(configPath)) {
+        const config = await import(configPath)
+        return config.default
+      }
+      return {}
+    } catch (_error) {
+      return {}
+    }
+  }
+
   async getStreamRes(messages, tools = []) {
     try {
       console.log('发送请求到大模型 API:', `${this.apiBaseUrl}/chat/completions`)
@@ -39,7 +61,7 @@ class AiService {
         }
       }))
       const stream = await this.openai.chat.completions.create({
-          model: 'qwq-32b',
+          model: this.model,
           messages,
           tools: toolConverted,
           parallel_tool_calls: true,
@@ -148,7 +170,7 @@ class AiService {
     try {
       // 检查 API Key 是否配置
       if (!this.apiKey) {
-        throw new Error('未配置 API Key，请在 .env 文件中设置 OPENAI_API_KEY')
+        throw new Error('未配置 API Key，请在 config.js 文件中设置 apiKey')
       }
       // const tools = await this.mcpServerManager.$getBuiltinTools()
       const tools = await this.mcpServerManager.getAllTools()
@@ -161,15 +183,15 @@ class AiService {
 
       // 检查是否有工具调用
       while (finalResponse?.tool_calls?.length > 0) {
-        console.log('检测到工具调用:', streamRes.tool_calls)
+        console.log('检测到工具调用:', finalResponse.tool_calls)
 
         // 将助手消息添加到历史
-        const { reasoning_content, ...rest } = streamRes
+        const { reasoning_content, ...rest } = finalResponse
         const updatedMessages = [...messages, rest]
 
         // 处理工具调用
         const messagesWithToolResults = await this.processToolCalls(
-          streamRes.tool_calls,
+          finalResponse.tool_calls,
           updatedMessages
         )
 
@@ -177,6 +199,7 @@ class AiService {
         const followUpRequestData = await this.getStreamRes(messagesWithToolResults, tools)
 
         finalResponse = followUpRequestData
+        console.log('finalResponse', finalResponse)
       }
 
       const res = {

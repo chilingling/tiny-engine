@@ -11,8 +11,6 @@ const inputSchema = z.object({
 
 export const addI18n = {
   name: 'add_i18n',
-  label: 'Add I18n Entry',
-  order: 6,
   description:
     "Add a new i18n entry to the current TinyEngine low-code application. Use this when you need to add new internationalization translations to your application.",
   inputSchema,
@@ -63,5 +61,3 @@ export const addI18n = {
     };
   },
 }
-
-// export const i18nTools = [addI18n]

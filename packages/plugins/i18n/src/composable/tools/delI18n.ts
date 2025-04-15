@@ -7,8 +7,6 @@ const inputSchema = z.object({
 
 export const delI18n = {
   name: 'delete_i18n',
-  label: 'Delete I18n Entry',
-  order: 8,
   description:
     "Delete an i18n entry from the current TinyEngine low-code application by its key. Use this when you need to remove internationalization translations.",
   inputSchema,

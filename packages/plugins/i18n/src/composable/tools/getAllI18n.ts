@@ -7,8 +7,6 @@ const inputSchema = z.object({
 
 export const getAllI18n = {
   name: 'get_all_i18n',
-  label: 'Get All I18n Entries',
-  order: 4,
   description:
     "Retrieve all i18n entries from the current TinyEngine low-code application. Use this when you need to get a complete list of all internationalization translations.",
   inputSchema,

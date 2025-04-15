@@ -4,6 +4,7 @@ import { LayoutService } from './src/composable'
 import designSmbConfig from '@opentiny/vue-design-smb'
 import { ConfigProvider as TinyConfigProvider } from '@opentiny/vue'
 import './src/styles/vars.less'
+import { openPluginPanel, closePluginPanel, getAllPlugins } from './src/tools'
 
 export default {
   ...metaData,
@@ -29,7 +30,12 @@ export default {
       ]
     }
   },
-  metas: [LayoutService]
+  metas: [LayoutService],
+  aiTools: [
+    openPluginPanel,
+    closePluginPanel,
+    getAllPlugins
+  ]
 }
 
 export { LayoutService }

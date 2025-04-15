@@ -26,6 +26,7 @@
   "homepage": "https://opentiny.design/tiny-engine",
   "dependencies": {
     "@opentiny/tiny-engine-meta-register": "workspace:*",
+    "marked": "^4.0.17",
     "zod": "^3.24.2",
     "zod-to-json-schema": "^3.24.5"
   },

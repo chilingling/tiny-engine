@@ -7,8 +7,6 @@ const inputSchema = z.object({
 
 export const getI18n = {
   name: 'get_i18n',
-  label: 'Get I18n Entry',
-  order: 5,
   description:
     "Retrieve an i18n entry from the current TinyEngine low-code application by its key. Use this when you need to get existing internationalization translations.",
   inputSchema,

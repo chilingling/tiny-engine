@@ -85,7 +85,7 @@
                           : 'chat-content-ai'
                       ]"
                     >
-                      <span>{{ item.content }}</span>
+                      <div class="md" v-html="item.content"></div>
                     </div>
                   </tiny-col>
                 </tiny-row>
@@ -125,9 +125,12 @@ import {
 } from '@opentiny/tiny-engine-meta-register'
 import { extend } from '@opentiny/vue-renderless/common/object'
 import { zodToJsonSchema } from 'zod-to-json-schema'
+import { marked } from 'marked'
 import RobotSettingPopover from './RobotSettingPopover.vue'
 import { getBlockContent, initBlockList, AIModelOptions } from './js/robotSetting'
 import { tools } from './tools'
+
+const rendererMD = new marked.Renderer()
 
 // WebSocket连接配置
 const WS_URL = 'ws://localhost:4090'
@@ -225,7 +228,10 @@ export default {
       sendProcess.messages = [
         // { ...firstMessage, content: `${getBlockContent()}\n${codeRules}\n${firstMessage.content}` },
         // { ...firstMessage },
-        ...sendProcess.messages
+        ...sendProcess.messages.map((item) => ({
+          ...item
+          // content: marked(item.content, { sanitize: false })
+        }))
       ]
       delete sendProcess.displayMessages
       return sendProcess
@@ -321,7 +327,9 @@ export default {
                   const respDisplayMessage = getAiRespMessage(originalResponse.role, replyWithoutCode.content)
                   sessionProcess.messages.push(responseMessage)
                   sessionProcess.displayMessages.push(respDisplayMessage)
-                  messages.value[messages.value.length - 1].content = replyWithoutCode.content
+                  messages.value[messages.value.length - 1].content = marked(replyWithoutCode.content, {
+                    sanitize: false
+                  })
                   setContextSession()
                   inProcesing.value = false
                   connectedFailed.value = false
@@ -452,15 +460,15 @@ export default {
     })
 
     const sendContent = async (content, isModel) => {
-      if (!isSaved() && !pageSettingState.isNew) {
-        Notify({
-          type: 'error',
-          message: `当前${isBlock() ? '区块' : '页面'}尚未保存，请保存后再试！`,
-          position: 'top-right',
-          duration: 5000
-        })
-        return
-      }
+      // if (!isSaved() && !pageSettingState.isNew) {
+      //   Notify({
+      //     type: 'error',
+      //     message: `当前${isBlock() ? '区块' : '页面'}尚未保存，请保存后再试！`,
+      //     position: 'top-right',
+      //     duration: 5000
+      //   })
+      //   return
+      // }
       if (inProcesing.value) {
         Notify({
           type: 'error',
@@ -523,6 +531,16 @@ export default {
         background: 'rgba(0, 0, 0, 0.15)',
         target: '#bind-chatgpt',
         size: 'large'
+      })
+
+      marked.setOptions({
+        renderer: rendererMD,
+        gfm: true,
+        breaks: false,
+        pedantic: false,
+        smartLists: true,
+        sanitize: true,
+        smartypants: false
       })
 
       await initBlockList()
@@ -860,6 +878,21 @@ export default {
   .selected-model {
     color: var(--te-chat-model-popover-color);
     background-color: var(--te-chat-model-popover-active-bg);
+  }
+}
+
+:deep(.md) {
+  color: var(--te-tutorial-text-color);
+  ul {
+    padding-left: 20px;
+  }
+  ul > li {
+    list-style: disc;
+  }
+  img {
+    max-width: 100%;
+    object-fit: contain;
+    padding-top: 14px;
   }
 }
 </style>

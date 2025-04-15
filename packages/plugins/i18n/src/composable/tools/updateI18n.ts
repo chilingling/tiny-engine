@@ -9,8 +9,6 @@ const inputSchema = z.object({
 
 export const updateI18n = {
   name: 'update_i18n',
-  label: 'Update I18n Entry',
-  order: 7,
   description:
     "Update an existing i18n entry in the current TinyEngine low-code application. Use this when you need to modify internationalization translations.",
   inputSchema,

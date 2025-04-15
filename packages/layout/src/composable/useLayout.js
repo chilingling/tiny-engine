@@ -12,7 +12,7 @@
 
 import { reactive, nextTick } from 'vue'
 import { constants } from '@opentiny/tiny-engine-utils'
-import { META_APP as PLUGIN_NAME, getMetaApi } from '@opentiny/tiny-engine-meta-register'
+import { META_APP as PLUGIN_NAME, getMetaApi, getMergeRegistry } from '@opentiny/tiny-engine-meta-register'
 
 const { PAGE_STATUS } = constants
 
@@ -89,6 +89,16 @@ const closePlugin = (forceClose) => {
 
 const isEmptyPage = () => layoutState.pageStatus?.state === PAGE_STATUS.Empty
 
+const getAllPlugins = () => {
+  return getMergeRegistry('plugins').map((item) => {
+    return {
+      id: item.id,
+      title: item.title,
+      type: item.type
+    }
+  })
+}
+
 export default () => {
   return {
     PLUGIN_NAME,
@@ -100,6 +110,7 @@ export default () => {
     setDimension,
     getDimension,
     getPluginState,
-    isEmptyPage
+    isEmptyPage,
+    getAllPlugins
   }
 }
