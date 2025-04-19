@@ -285,7 +285,7 @@ const addComponentSnippets = (componentSnippets: Snippet[] | undefined, snippets
     if (snippetsMap.has(snippetGroup.group)) {
       snippetsMap.get(snippetGroup.group)!.children.push(...snippetGroup.children)
     } else {
-      snippetsData.push(snippetGroup)
+      snippetsData.push(deepClone(snippetGroup))
     }
   })
 
@@ -500,6 +500,12 @@ const initMaterial = ({ isInit = true, appData = {} }: InitMaterialOptions = {})
   }
 }
 
+const refreshMaterial = async () => {
+  clearMaterials()
+  initMaterial()
+  await fetchMaterial()
+}
+
 /**
  * 根据组名获取指定分组组件
  * @param components 所有组件
@@ -540,6 +546,7 @@ export default function () {
     getBlockCompileRes,
     addBlockResources,
     updateBlockCompileCache,
-    getComponentsByGroup
+    getComponentsByGroup,
+    refreshMaterial
   }
 }
