@@ -68,7 +68,8 @@ export default defineConfig({
     'import.meta.env.VITE_API_MOCK': 'import.meta.env.VITE_API_MOCK',
     'import.meta.env.VITE_CDN_TYPE': 'import.meta.env.VITE_CDN_TYPE',
     'import.meta.env.VITE_LOCAL_IMPORT_PATH': 'import.meta.env.VITE_LOCAL_IMPORT_PATH',
-    'import.meta.env.VITE_LOCAL_IMPORT_MAPS': 'import.meta.env.VITE_LOCAL_IMPORT_MAPS'
+    'import.meta.env.VITE_LOCAL_IMPORT_MAPS': 'import.meta.env.VITE_LOCAL_IMPORT_MAPS',
+    __DEV__: true
   },
   build: {
     commonjsOptions: {

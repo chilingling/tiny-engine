@@ -12,6 +12,9 @@ const nodeModulesPolyfillPlugin = nodeModulesPolyfillPluginCjs.default
 
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    __DEV__: true
+  },
   plugins: [dts({ rollupTypes: true, tsconfigPath: './tsconfig.json' }), vue()],
   optimizeDeps: {
     esbuildOptions: {

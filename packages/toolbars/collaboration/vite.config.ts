@@ -17,6 +17,9 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import generateComment from '@opentiny/tiny-engine-vite-plugin-meta-comments'
 
 export default defineConfig({
+  define: {
+    __DEV__: true
+  },
   plugins: [generateComment(), vue(), vueJsx()],
   publicDir: false,
   resolve: {},

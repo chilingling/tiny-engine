@@ -50,7 +50,8 @@ export default defineConfig({
     'import.meta.env.VITE_ORIGIN': 'import.meta.env.VITE_ORIGIN',
     'import.meta.env.VITE_CDN_DOMAIN': 'import.meta.env.VITE_CDN_DOMAIN',
     'import.meta.env.VITE_API_MOCK': 'import.meta.env.VITE_API_MOCK',
-    'import.meta.env.VITE_CDN_TYPE': 'import.meta.env.VITE_CDN_TYPE'
+    'import.meta.env.VITE_CDN_TYPE': 'import.meta.env.VITE_CDN_TYPE',
+    __DEV__: true
   },
   build: {
     sourcemap: true,

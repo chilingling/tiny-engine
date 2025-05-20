@@ -20,6 +20,9 @@ import generateComment from '@opentiny/tiny-engine-vite-plugin-meta-comments'
 export default defineConfig({
   plugins: [generateComment(), vue(), vueJsx()],
   publicDir: false,
+  define: {
+    __DEV__: true
+  },
   resolve: {},
   build: {
     sourcemap: true,

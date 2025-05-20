@@ -19,6 +19,9 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 export default defineConfig({
   plugins: [vue(), vueJsx()],
   publicDir: false,
+  define: {
+    __DEV__: true
+  },
   build: {
     sourcemap: true,
     lib: {
